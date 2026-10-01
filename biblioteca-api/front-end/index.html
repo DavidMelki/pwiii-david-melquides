@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acervo da Biblioteca</title>
+<style>
+  :root {
+    --bg: #f6f3ee;
+    --card: #ffffff;
+    --line: #e3ddd3;
+    --ink: #2b2620;
+    --muted: #7a7064;
+    --brand: #8a4b2a;
+    --brand-dark: #6e3a1f;
+    --ok-bg: #e4f2e6;
+    --ok-fg: #2d6a3a;
+    --off-bg: #f6e3de;
+    --off-fg: #9a3b2a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  header {
+    background: var(--brand);
+    color: #fff;
+    padding: 22px 24px;
+  }
+  header h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.6rem; }
+  header p { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.85; }
+  .layout {
+    max-width: 1080px;
+    margin: 24px auto;
+    padding: 0 16px;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .card h2 { margin: 0 0 14px; font-size: 1rem; font-family: Georgia, serif; }
+  label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin: 10px 0 4px; }
+  input, select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: #fff;
+    color: var(--ink);
+  }
+  input:focus, select:focus { outline: 2px solid var(--brand); outline-offset: -1px; }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.85rem; }
+  .check input { width: auto; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+
+  button {
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 9px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--brand); color: #fff; }
+  .btn-primary:hover { background: var(--brand-dark); }
+  .btn-ghost { background: transparent; border-color: var(--line); color: var(--muted); }
+  .btn-ghost:hover { border-color: var(--muted); }
+  .btn-danger { background: transparent; border-color: var(--off-fg); color: var(--off-fg); }
+  .btn-small { padding: 5px 9px; font-size: 0.75rem; }
+  .actions { display: flex; gap: 8px; margin-top: 16px; }
+
+  .mensagem { margin-top: 12px; padding: 9px 11px; border-radius: 6px; font-size: 0.82rem; display: none; }
+  .mensagem.erro { display: block; background: var(--off-bg); color: var(--off-fg); }
+  .mensagem.sucesso { display: block; background: var(--ok-bg); color: var(--ok-fg); }
+  .mensagem ul { margin: 6px 0 0; padding-left: 18px; }
+
+  .filtros { display: flex; gap: 10px; margin-bottom: 14px; }
+  .filtros input { flex: 2; }
+  .filtros select { flex: 1; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--muted); padding: 8px 6px;
+    border-bottom: 2px solid var(--line);
+  }
+  td { padding: 11px 6px; border-bottom: 1px solid var(--line); font-size: 0.88rem; vertical-align: middle; }
+  td .titulo { font-weight: 600; }
+  td .sub { color: var(--muted); font-size: 0.78rem; }
+  td.acoes { text-align: right; white-space: nowrap; }
+  td.acoes button { margin-left: 4px; }
+
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok-fg); }
+  .badge.off { background: var(--off-bg); color: var(--off-fg); }
+
+  .vazio { text-align: center; color: var(--muted); padding: 28px 0; font-size: 0.88rem; display: none; }
+  .contador { color: var(--muted); font-size: 0.78rem; margin-top: 12px; }
+  .conexao { font-size: 0.78rem; margin-top: 4px; opacity: 0.9; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Acervo da Biblioteca</h1>
+  <p class="conexao" id="conexao">Verificando conexão com a API...</p>
+</header>
+
+<main class="layout">
+
+  <section class="card">
+    <h2 id="tituloForm">Cadastrar livro</h2>
+    <form id="formLivro" novalidate>
+      <input type="hidden" id="livroId">
+
+      <label for="titulo">Título</label>
+      <input type="text" id="titulo" maxlength="200">
+
+      <label for="autor">Autor</label>
+      <input type="text" id="autor" maxlength="120">
+
+      <label for="isbn">ISBN (10 ou 13 dígitos)</label>
+      <input type="text" id="isbn" placeholder="978-85-359-0277-5">
+
+      <div class="row">
+        <div>
+          <label for="ano">Ano</label>
+          <input type="number" id="ano" min="1450" max="2100">
+        </div>
+        <div>
+          <label for="genero">Gênero</label>
+          <select id="genero"></select>
+        </div>
+      </div>
+
+      <label class="check"><input type="checkbox" id="disponivel" checked> Disponível para empréstimo</label>
+
+      <div class="actions">
+        <button type="submit" class="btn-primary" id="btnSalvar">Cadastrar</button>
+        <button type="button" class="btn-ghost" id="btnCancelar" hidden>Cancelar</button>
+      </div>
+      <div class="mensagem" id="mensagem" role="alert"></div>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="filtros">
+      <input type="search" id="filtroBusca" placeholder="Buscar por título ou autor...">
+      <select id="filtroGenero"><option value="">Todos os gêneros</option></select>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Livro</th><th>ISBN</th><th>Ano</th><th>Gênero</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody id="corpoTabela"></tbody>
+    </table>
+    <div class="vazio" id="vazio">Nenhum livro encontrado.</div>
+    <div class="contador" id="contador"></div>
+  </section>
+
+</main>
+
+<script>
+const API = "http://localhost:8080/api/livros";
+
+const $ = (id) => document.getElementById(id);
+const campos = {
+  id: $("livroId"), titulo: $("titulo"), autor: $("autor"), isbn: $("isbn"),
+  ano: $("ano"), genero: $("genero"), disponivel: $("disponivel")
+};
+
+let temporizadorBusca = null;
+
+/* ---------- utilitários ---------- */
+
+function rotuloGenero(valor) {
+  const nomes = { FICCAO: "Ficção", ROMANCE: "Romance", FANTASIA: "Fantasia", TECNOLOGIA: "Tecnologia",
+                  HISTORIA: "História", BIOGRAFIA: "Biografia", CIENCIA: "Ciência", OUTROS: "Outros" };
+  return nomes[valor] || valor;
+}
+
+function criar(tag, classe, texto) {
+  const el = document.createElement(tag);
+  if (classe) el.className = classe;
+  if (texto !== undefined) el.textContent = texto;
+  return el;
+}
+
+function mostrarMensagem(tipo, texto, detalhes) {
+  const box = $("mensagem");
+  box.className = "mensagem " + tipo;
+  box.textContent = texto;
+  if (detalhes && Object.keys(detalhes).length) {
+    const ul = document.createElement("ul");
+    for (const msg of Object.values(detalhes)) ul.appendChild(criar("li", "", msg));
+    box.appendChild(ul);
+  }
+}
+
+function limparMensagem() {
+  $("mensagem").className = "mensagem";
+  $("mensagem").textContent = "";
+}
+
+function statusConexao(online) {
+  $("conexao").textContent = online
+    ? "Conectado à API (localhost:8080)"
+    : "Sem conexão com a API. Verifique se o servidor está rodando em localhost:8080.";
+}
+
+/* ---------- carregamento ---------- */
+
+async function carregarGeneros() {
+  try {
+    const res = await fetch(API + "/generos");
+    const generos = await res.json();
+    for (const g of generos) {
+      campos.genero.appendChild(new Option(rotuloGenero(g), g));
+      $("filtroGenero").appendChild(new Option(rotuloGenero(g), g));
+    }
+  } catch (e) {
+    statusConexao(false);
+  }
+}
+
+async function carregarLivros() {
+  const params = new URLSearchParams();
+  const busca = $("filtroBusca").value.trim();
+  if (busca) params.set("busca", busca);
+  if ($("filtroGenero").value) params.set("genero", $("filtroGenero").value);
+
+  try {
+    const res = await fetch(API + (params.toString() ? "?" + params : ""));
+    if (!res.ok) throw new Error("Falha ao listar");
+    statusConexao(true);
+    desenharTabela(await res.json());
+  } catch (e) {
+    statusConexao(false);
+    desenharTabela([]);
+  }
+}
+
+function desenharTabela(livros) {
+  const corpo = $("corpoTabela");
+  corpo.replaceChildren();
+  $("vazio").style.display = livros.length ? "none" : "block";
+  $("contador").textContent = livros.length ? livros.length + " livro(s) listado(s)" : "";
+
+  for (const livro of livros) {
+    const tr = document.createElement("tr");
+
+    const tdTitulo = document.createElement("td");
+    tdTitulo.appendChild(criar("div", "titulo", livro.titulo));
+    tdTitulo.appendChild(criar("div", "sub", livro.autor));
+    tr.appendChild(tdTitulo);
+
+    tr.appendChild(criar("td", "", livro.isbn));
+    tr.appendChild(criar("td", "", String(livro.anoPublicacao)));
+    tr.appendChild(criar("td", "", rotuloGenero(livro.genero)));
+
+    const tdStatus = document.createElement("td");
+    tdStatus.appendChild(criar("span", "badge " + (livro.disponivel ? "ok" : "off"),
+                               livro.disponivel ? "Disponível" : "Emprestado"));
+    tr.appendChild(tdStatus);
+
+    const tdAcoes = criar("td", "acoes");
+    tdAcoes.appendChild(botaoAcao(livro.disponivel ? "Emprestar" : "Devolver", "btn-ghost", () => alternarStatus(livro)));
+    tdAcoes.appendChild(botaoAcao("Editar", "btn-ghost", () => iniciarEdicao(livro)));
+    tdAcoes.appendChild(botaoAcao("Excluir", "btn-danger", () => excluir(livro)));
+    tr.appendChild(tdAcoes);
+
+    corpo.appendChild(tr);
+  }
+}
+
+function botaoAcao(texto, classe, aoClicar) {
+  const b = criar("button", classe + " btn-small", texto);
+  b.type = "button";
+  b.addEventListener("click", aoClicar);
+  return b;
+}
+
+/* ---------- ações ---------- */
+
+async function tratarResposta(res) {
+  if (res.ok) return true;
+  const corpo = await res.json().catch(() => ({}));
+  mostrarMensagem("erro", corpo.mensagem || "Não foi possível concluir a operação.", corpo.detalhes);
+  return false;
+}
+
+$("formLivro").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  limparMensagem();
+
+  const id = campos.id.value;
+  const payload = {
+    titulo: campos.titulo.value,
+    autor: campos.autor.value,
+    isbn: campos.isbn.value,
+    anoPublicacao: campos.ano.value === "" ? null : Number(campos.ano.value),
+    genero: campos.genero.value || null,
+    disponivel: campos.disponivel.checked
+  };
+
+  try {
+    const res = await fetch(id ? `${API}/${id}` : API, {
+      method: id ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!(await tratarResposta(res))) return;
+
+    const editando = Boolean(id);
+    resetarFormulario();
+    mostrarMensagem("sucesso", editando ? "Livro atualizado com sucesso." : "Livro cadastrado com sucesso.");
+    carregarLivros();
+  } catch (err) {
+    mostrarMensagem("erro", "Não foi possível falar com a API.");
+  }
+});
+
+function iniciarEdicao(livro) {
+  campos.id.value = livro.id;
+  campos.titulo.value = livro.titulo;
+  campos.autor.value = livro.autor;
+  campos.isbn.value = livro.isbn;
+  campos.ano.value = livro.anoPublicacao;
+  campos.genero.value = livro.genero;
+  campos.disponivel.checked = livro.disponivel;
+  $("tituloForm").textContent = "Editar livro";
+  $("btnSalvar").textContent = "Salvar alterações";
+  $("btnCancelar").hidden = false;
+  limparMensagem();
+  campos.titulo.focus();
+}
+
+async function alternarStatus(livro) {
+  limparMensagem();
+  try {
+    const res = await fetch(`${API}/${livro.id}/disponibilidade`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ disponivel: !livro.disponivel })
+    });
+    if (await tratarResposta(res)) carregarLivros();
+  } catch (err) {
+    mostrarMensagem("erro", "Não foi possível falar com a API.");
+  }
+}
+
+async function excluir(livro) {
+  if (!confirm(`Excluir "${livro.titulo}" do acervo?`)) return;
+  limparMensagem();
+  try {
+    const res = await fetch(`${API}/${livro.id}`, { method: "DELETE" });
+    if (await tratarResposta(res)) carregarLivros();
+  } catch (err) {
+    mostrarMensagem("erro", "Não foi possível falar com a API.");
+  }
+}
+
+function resetarFormulario() {
+  $("formLivro").reset();
+  campos.id.value = "";
+  campos.disponivel.checked = true;
+  $("tituloForm").textContent = "Cadastrar livro";
+  $("btnSalvar").textContent = "Cadastrar";
+  $("btnCancelar").hidden = true;
+  limparMensagem();
+}
+
+$("btnCancelar").addEventListener("click", resetarFormulario);
+
+$("filtroBusca").addEventListener("input", () => {
+  clearTimeout(temporizadorBusca);
+  temporizadorBusca = setTimeout(carregarLivros, 300);
+});
+$("filtroGenero").addEventListener("change", carregarLivros);
+
+/* ---------- início ---------- */
+carregarGeneros().then(carregarLivros);
+</script>
+</body>
+</html>
